@@ -1,0 +1,22 @@
+{
+  "name": "plant-doctor-diagnosis",
+  "version": "2.0.0",
+  "description": "Complete plant diagnosis system with classification, disease detection, and care recommendations",
+  "main": "app.py",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Python backend'"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "keywords": [
+    "plant",
+    "disease",
+    "detection",
+    "classification",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT"
+}
