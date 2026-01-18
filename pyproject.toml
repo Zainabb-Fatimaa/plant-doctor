@@ -6,7 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "plant-doctor-api"
 version = "2.0.0"
 description = "Complete plant diagnosis system with classification, disease detection, and care recommendations"
-requires-python = ">=3.10,<3.11"
+requires-python = "3.10"
 
-[tool.setuptools]
-packages = ["plant_doctor"]
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"

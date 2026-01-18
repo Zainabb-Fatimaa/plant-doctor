@@ -1,12 +1,14 @@
 {
   "version": 2,
+  "env": {
+    "PYTHON_VERSION": "3.10"
+  },
   "builds": [
     {
       "src": "app.py",
       "use": "@vercel/python@4.0.5",
       "config": {
-        "runtime": "python3.10",
-        "pythonVersion": "3.10"
+        "runtime": "python3.10"
       }
     }
   ],
