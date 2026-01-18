@@ -19,26 +19,60 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Plant Doctor API", version="2.0.0", description="Complete plant diagnosis system with classification, disease detection, and care recommendations")
 
-@app.post('/disease-detection-file')
-async def disease_detection_file(file: UploadFile = File(...)):
+@app.post('/plant-diagnosis')
+async def plant_diagnosis(file: UploadFile = File(...)):
     """
     Endpoint to detect diseases in leaf images using direct image file upload.
+    Now includes plant classification from Roboflow along with disease detection.
     Accepts multipart/form-data with an image file.
     """
     try:
-        logger.info("Received image file for disease detection")
+        logger.info("Received image file for disease detection with plant classification")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
         
         # Read uploaded file into memory
         contents = await file.read()
         
-    # Process file directly from memory
-        result = convert_image_to_base64_and_test(contents)
+        # Convert to base64 for Roboflow classification
+        import base64
+        base64_image = base64.b64encode(contents).decode('utf-8')
         
-    # No cleanup needed since file is not saved locally
+        # First, classify the plant using Roboflow
+        plant_name = "Unknown Plant"
+        
+        try:
+            from inference import RoboflowInferenceClient
+            
+            roboflow_client = RoboflowInferenceClient(
+                workspace_name="laiba-masood-tyq7q",
+                model_id="identify-plant-zvd1y/1",
+                min_confidence=0.7,
+                confidence_method="adaptive"
+            )
+            classification_result = roboflow_client.classify_plant_from_base64(base64_image)
+            
+            if classification_result.get("success", False):
+                plant_name = classification_result.get("plant_name", "Unknown Plant")
+            else:
+                classification_error = classification_result.get("error", "Classification failed")
+                logger.warning(f"Roboflow classification failed: {classification_error}")
+        except Exception as e:
+            classification_error = str(e)
+            logger.warning(f"Roboflow classification error: {classification_error}")
+        
+        # Process file for disease detection
+        result = convert_image_to_base64_and_test(contents)
         
         if result is None:
             raise HTTPException(status_code=500, detail="Failed to process image file")
-        logger.info("Disease detection from file completed successfully")
+        
+        # Add plant classification info to the result
+        result["plant_name"] = plant_name
+        
+        logger.info("Disease detection with plant classification completed successfully")
         return JSONResponse(content=result)
     except HTTPException:
         raise

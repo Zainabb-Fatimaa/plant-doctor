@@ -12,9 +12,10 @@ st.set_page_config(
 # Modern, clean CSS with improved styling
 st.markdown("""
     <style>
-    /* Clean background with subtle gradient */
+    /* Modern background with dynamic gradient */
     .stApp {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #6ee7b7 100%);
+        background-attachment: fixed;
     }
     
     /* Hide default Streamlit elements */
@@ -43,73 +44,127 @@ st.markdown("""
         padding-bottom: 2rem;
     }
     
-    /* Main header with modern design */
+    /* Main header with glassmorphism effect */
     .main-header {
         text-align: center;
-        padding: 2.5rem 1.5rem;
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        border-radius: 24px;
+        padding: 3rem 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 28px;
         margin-bottom: 2.5rem;
-        box-shadow: 0 10px 25px rgba(5, 150, 105, 0.2);
+        box-shadow: 0 20px 60px rgba(5, 150, 105, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #10b981, #059669, #047857, #059669, #10b981);
+        background-size: 200% 100%;
+        animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
     }
     
     .main-header h1 {
-        color: white;
-        font-size: 2.8rem;
-        margin-bottom: 0.5rem;
-        font-weight: 800;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        color: #059669;
+        font-size: 3.2rem;
+        margin-bottom: 0.8rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        text-shadow: none;
     }
     
     .main-header p {
-        color: #d1fae5;
-        font-size: 1.2rem;
+        color: #047857;
+        font-size: 1.3rem;
         margin: 0;
-        font-weight: 500;
+        font-weight: 600;
     }
     
-    /* Mode selection card */
+    /* Mode selection card with hover effect */
     .mode-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        border-radius: 20px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border: 2px solid #f0f9ff;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .mode-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(5, 150, 105, 0.15);
     }
     
     .mode-card h3 {
         color: #059669;
-        font-size: 1.3rem;
-        margin-bottom: 1rem;
-        font-weight: 700;
+        font-size: 1.5rem;
+        margin-bottom: 1.2rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
     
-    /* Upload section */
+    /* Upload section with modern card design */
     .upload-section {
-        background: white;
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 2.5rem;
+        border-radius: 24px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
-        border: 2px solid #f0f9ff;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        transition: all 0.3s ease;
+    }
+    
+    .upload-section:hover {
+        box-shadow: 0 16px 40px rgba(5, 150, 105, 0.15);
     }
     
     .upload-section h3 {
-        color: #1f2937;
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-        font-weight: 700;
+        color: #047857;
+        font-size: 1.7rem;
+        margin-bottom: 0.8rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
     
-    /* Result card - more compact */
+    /* Result card - modern glassmorphism */
     .result-box {
-        background: white;
-        padding: 2rem;
-        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(12px);
+        padding: 2.5rem;
+        border-radius: 28px;
         margin-top: 2rem;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        border: 2px solid #f0f9ff;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .result-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #10b981, #059669, #047857);
     }
     
     /* Hide any empty containers within result box */
@@ -122,58 +177,92 @@ st.markdown("""
         padding: 0 !important;
     }
     
-    /* Plant name with icon */
+    /* Plant name with animated gradient */
     .plant-name {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #059669;
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #059669, #10b981, #34d399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         text-align: center;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
+        margin-bottom: 1.8rem;
+        padding-bottom: 1.2rem;
         border-bottom: 3px solid #d1fae5;
+        letter-spacing: -0.5px;
     }
     
-    /* Status badges - modern design */
+    /* Status badges - enhanced with animations */
     .status {
         display: inline-block;
-        padding: 0.6rem 1.8rem;
-        border-radius: 30px;
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
         font-weight: 700;
-        font-size: 1.05rem;
+        font-size: 1.1rem;
         margin: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .status::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .status:hover::before {
+        width: 300px;
+        height: 300px;
     }
     
     .status:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.18);
     }
     
     .status.healthy {
-        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-        color: #065f46;
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
     }
     
     .status.sick {
-        background: linear-gradient(135deg, #fee2e2, #fecaca);
-        color: #991b1b;
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
     }
     
     .status.info {
-        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-        color: #1e40af;
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        color: white;
     }
     
-    /* Section headers - modern style */
+    /* Section headers - sleek modern style */
     .section-header {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #059669;
-        margin: 2rem 0 1rem 0 !important;
-        padding: 0.8rem 1.2rem;
-        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-        border-radius: 12px;
-        border-left: 5px solid #059669;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #047857;
+        margin: 2.5rem 0 1.2rem 0 !important;
+        padding: 1rem 1.5rem;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+        border-radius: 16px;
+        border-left: 5px solid #10b981;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .section-header:hover {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08));
+        transform: translateX(4px);
     }
     
     /* Force no white space between sections */
@@ -183,34 +272,49 @@ st.markdown("""
         margin-top: 0.5rem !important;
     }
     
-    /* Info box - cleaner design */
+    /* Info box - enhanced glassmorphism */
     .info-box {
-        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        background: rgba(240, 253, 244, 0.9);
+        backdrop-filter: blur(8px);
         border-left: 5px solid #10b981;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        padding: 1.8rem;
+        margin: 1.2rem 0;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .info-box:hover {
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.12);
+        transform: translateX(2px);
     }
     
     .info-box p {
-        margin: 0.5rem 0;
-        color: #374151;
-        line-height: 1.7;
+        margin: 0.6rem 0;
+        color: #1f2937;
+        line-height: 1.8;
         font-size: 1.05rem;
     }
     
     .info-box strong {
-        color: #059669;
+        color: #047857;
+        font-weight: 700;
     }
     
-    /* Simple list - improved spacing */
+    /* Simple list - modern card design */
     .simple-list {
-        background: #f9fafb;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        background: rgba(249, 250, 251, 0.95);
+        backdrop-filter: blur(8px);
+        padding: 1.8rem;
+        border-radius: 16px;
+        margin: 1.2rem 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border: 1px solid rgba(16, 185, 129, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .simple-list:hover {
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
     }
     
     .simple-list ul {
@@ -219,54 +323,108 @@ st.markdown("""
     }
     
     .simple-list li {
-        margin: 1rem 0;
-        color: #374151;
-        line-height: 1.7;
+        margin: 1.2rem 0;
+        color: #1f2937;
+        line-height: 1.8;
         font-size: 1.05rem;
+        position: relative;
+        padding-left: 0.5rem;
+    }
+    
+    .simple-list li::marker {
+        color: #10b981;
+        font-weight: bold;
     }
     
     .simple-list li strong {
-        color: #059669;
+        color: #047857;
+        font-weight: 700;
     }
     
-    /* Button style - modern gradient */
+    /* Button style - premium 3D effect */
     .stButton > button {
-        background: linear-gradient(135deg, #059669, #10b981) !important;
+        background: linear-gradient(135deg, #10b981, #059669) !important;
         color: white !important;
-        font-size: 1.2rem !important;
-        padding: 0.9rem 2.5rem !important;
-        border-radius: 12px !important;
+        font-size: 1.25rem !important;
+        padding: 1rem 3rem !important;
+        border-radius: 16px !important;
         border: none !important;
-        font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
-        transition: all 0.3s ease !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3), 
+                    0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stButton > button:hover::before {
+        left: 100%;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, #047857, #059669) !important;
-        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4) !important;
-        transform: translateY(-2px);
+        background: linear-gradient(135deg, #059669, #047857) !important;
+        box-shadow: 0 12px 28px rgba(16, 185, 129, 0.4), 
+                    0 4px 8px rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-3px) scale(1.02);
     }
     
-    /* Radio buttons - cleaner */
+    .stButton > button:active {
+        transform: translateY(-1px) scale(0.98);
+    }
+    
+    /* Radio buttons - modern card style */
     .stRadio > div {
-        background: white;
-        padding: 1.2rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border: 1px solid rgba(16, 185, 129, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .stRadio > div:hover {
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.3);
     }
     
     .stRadio label {
-        font-size: 1.05rem;
-        font-weight: 500;
+        font-size: 1.08rem;
+        font-weight: 600;
+        color: #1f2937;
+        transition: color 0.2s;
     }
     
-    /* File uploader styling */
+    .stRadio label:hover {
+        color: #047857;
+    }
+    
+    /* File uploader styling - modern dashed border with animation */
     [data-testid="stFileUploader"] {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 2px dashed #10b981;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        padding: 2rem;
+        border-radius: 20px;
+        border: 3px dashed #10b981;
+        transition: all 0.3s ease;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        border-color: #059669;
+        background: rgba(240, 253, 244, 0.95);
+        transform: scale(1.01);
     }
     
     /* Success message */
@@ -283,40 +441,67 @@ st.markdown("""
         border-radius: 12px;
     }
     
-    /* Image container */
+    /* Image container with hover effect */
     [data-testid="stImage"] {
-        border-radius: 16px;
+        border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        transition: all 0.3s ease;
     }
     
-    /* Footer tips */
+    [data-testid="stImage"]:hover {
+        box-shadow: 0 12px 32px rgba(0,0,0,0.16);
+        transform: scale(1.02);
+    }
+    
+    /* Footer tips - premium card design */
     .tips-footer {
-        background: white;
-        padding: 2rem;
-        border-radius: 16px;
-        margin-top: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 2.5rem;
+        border-radius: 24px;
+        margin-top: 3rem;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.1);
         text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        transition: all 0.3s ease;
+    }
+    
+    .tips-footer:hover {
+        box-shadow: 0 16px 40px rgba(16, 185, 129, 0.15);
+        transform: translateY(-2px);
     }
     
     .tips-footer strong {
-        color: #059669;
-        font-size: 1.1rem;
+        color: #047857;
+        font-size: 1.3rem;
+        font-weight: 800;
     }
     
     .tips-footer p {
-        color: #6b7280;
-        margin: 0.5rem 0;
-        font-size: 1rem;
+        color: #4b5563;
+        margin: 0.8rem 0;
+        font-size: 1.05rem;
+        font-weight: 500;
+        transition: color 0.2s;
     }
     
-    /* Divider */
+    .tips-footer p:hover {
+        color: #047857;
+    }
+    
+    /* Divider - elegant gradient */
     hr {
         border: none;
-        height: 2px;
-        background: linear-gradient(to right, transparent, #d1fae5, transparent);
-        margin: 2rem 0;
+        height: 3px;
+        background: linear-gradient(to right, 
+            transparent, 
+            rgba(16, 185, 129, 0.3), 
+            rgba(16, 185, 129, 0.6), 
+            rgba(16, 185, 129, 0.3), 
+            transparent);
+        margin: 3rem 0;
+        border-radius: 2px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -354,10 +539,6 @@ def display_complete_diagnosis(result):
             </div>
         """, unsafe_allow_html=True)
     
-    # Plant name
-    #plant_name = result.get('plant_name', 'Your Plant')
-    #st.markdown(f'<div class="plant-name">🌿 {plant_name}</div>', unsafe_allow_html=True)
-    
     # Health status
     health_status = result.get('health_status', 'unknown')
     
@@ -366,7 +547,7 @@ def display_complete_diagnosis(result):
         st.markdown('<div class="info-box"><p>🎉 Excellent! Your plant is in great health. Continue with your current care routine!</p></div>', unsafe_allow_html=True)
     
     elif health_status == 'unhealthy':
-        st.markdown('<div style="text-align: center;"><span class="status sick">⚠️ Plant Needs Care</span></div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center;"><span class="status sick">⚠️ Needs Attention</span></div>', unsafe_allow_html=True)
         
         # Disease info
         disease_info = result.get('disease_info', {})
@@ -374,12 +555,12 @@ def display_complete_diagnosis(result):
             disease_name = disease_info.get('disease_name', 'Unknown issue')
             severity = disease_info.get('severity', 'Unknown')
             
-            st.markdown(f'<div class="info-box"><p><strong>Detected Issue:</strong> {disease_name}</p><p><strong>Severity Level:</strong> {severity}</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="info-box"><p><strong>What we found:</strong> {disease_name}</p><p><strong>How serious it looks:</strong> {severity}</p></div>', unsafe_allow_html=True)
             
             # Symptoms
             symptoms = disease_info.get('symptoms', [])
             if symptoms:
-                symptoms_html = '<div class="section-header">🔍 Observed Symptoms</div><div class="simple-list"><ul>'
+                symptoms_html = '<div class="section-header">🔎 What we observed</div><div class="simple-list"><ul>'
                 for symptom in symptoms[:4]:
                     symptoms_html += f'<li>{symptom}</li>'
                 symptoms_html += '</ul></div>'
@@ -401,17 +582,17 @@ def display_complete_diagnosis(result):
         classification_percent = classification_conf * 100 if classification_conf <= 1.0 else classification_conf
         disease_percent = disease_conf * 100 if disease_conf <= 1.0 else disease_conf
         
-        # Display overall confidence with method
+        # Display overall confidence in plain language
         st.markdown(
             f'<div style="text-align: center; margin: 1.5rem 0;">'
-            f'<span class="status info">🎯 Overall Confidence: {overall_percent:.1f}%</span>'
-            f'<br><small style="color: #6b7280; font-size: 0.9rem;">(Method: {calculation_method.replace("_", " ").title()})</small>'
+            f'<span class="status info">🎯 Overall confidence: {overall_percent:.1f}%</span>'
+            f'<br><small style="color: #6b7280; font-size: 0.9rem;">How we estimated this: {calculation_method.replace("_", " ").title()}</small>'
             f'</div>', 
             unsafe_allow_html=True
         )
         
         # Show detailed confidence breakdown
-        conf_breakdown = '<div class="section-header">📊 Confidence Breakdown</div><div class="info-box">'
+        conf_breakdown = '<div class="section-header">📊 How confident we are</div><div class="info-box">'
         if classification_conf > 0:
             conf_breakdown += f'<p><strong>🌿 Plant Classification:</strong> {classification_percent:.1f}%</p>'
         if disease_conf > 0:
@@ -425,31 +606,128 @@ def display_complete_diagnosis(result):
         st.markdown(conf_breakdown, unsafe_allow_html=True)
     
     # Treatment recommendations
+    # Build a focused treatment plan by merging LLM recommendations, model treatments, and KB guidance
     treatments = result.get('treatments', {})
-    combined_treatments = treatments.get('combined_treatments', [])
-    if combined_treatments:
-        treatment_html = '<div class="section-header">💊 Treatment Plan</div><div class="simple-list"><ul>'
-        for i, treatment in enumerate(combined_treatments[:6], 1):
-            treatment_html += f'<li><strong>Step {i}:</strong> {treatment}</li>'
-        treatment_html += '</ul></div>'
-        st.markdown(treatment_html, unsafe_allow_html=True)
-    
-    # Care tips from knowledge base
-    kb_advice = result.get('kb_advice', {})
-    if kb_advice.get('plant_found_in_kb'):
-        general_care = kb_advice.get('general_care', '')
-        if general_care:
-            st.markdown('<div class="section-header">🌟 General Care Guidelines</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="info-box"><p>{general_care}</p></div>', unsafe_allow_html=True)
+    combined_treatments = treatments.get('combined_treatments', []) if isinstance(treatments, dict) else []
+    llm_advice = result.get('llm_advice', {}) or {}
+    llm_treatment = llm_advice.get('treatment_plan') or llm_advice.get('treatments') or []
+    kb_advice = result.get('kb_advice', {}) or {}
+    kb_treatments = kb_advice.get('treatments') or kb_advice.get('treatment_recommendations') or []
+
+    # Observed symptoms (merge sources and show clearly)
+    observed = []
+    # disease_info symptoms (most direct)
+    disease_info = result.get('disease_info', {}) or {}
+    observed += disease_info.get('symptoms', []) if isinstance(disease_info.get('symptoms', []), list) else []
+    # LLM reported symptoms
+    observed += llm_advice.get('symptoms', []) if isinstance(llm_advice.get('symptoms', []), list) else []
+    # KB reported symptoms
+    observed += kb_advice.get('observed_symptoms', []) if isinstance(kb_advice.get('observed_symptoms', []), list) else []
+
+    # Deduplicate while preserving order
+    seen = set()
+    observed_clean = []
+    for s in observed:
+        s_str = str(s).strip()
+        if not s_str:
+            continue
+        if s_str.lower() in seen:
+            continue
+        seen.add(s_str.lower())
+        observed_clean.append(s_str)
+
+    if observed_clean:
+        symptoms_html = '<div class="section-header">🔎 What we observed</div><div class="simple-list"><ul>'
+        for sym in observed_clean[:8]:
+            symptoms_html += f'<li>{sym}</li>'
+        symptoms_html += '</ul></div>'
+        st.markdown(symptoms_html, unsafe_allow_html=True)
+
+    # Merge treatment sources into a single prioritized list
+    merged = []
+    for seq, src in ((llm_treatment, 'LLM'), (combined_treatments, 'Model'), (kb_treatments, 'KB')):
+        if not seq:
+            continue
+        for step in seq:
+            if not step:
+                continue
+            merged.append((str(step).strip(), src))
+
+    # Also accept treatments provided directly under result keys
+    if isinstance(result.get('treatment'), list):
+        for t in result.get('treatment', []):
+            merged.append((str(t).strip(), 'Model'))
+
+    # Deduplicate keeping source priority (LLM -> Model -> KB)
+    seen = set()
+    focused_steps = []
+    for text, src in merged:
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        focused_steps.append((text, src))
+
+    # Prioritize urgent/containment actions first
+    urgent_keywords = ('remove', 'isolate', 'prune', 'dispose', 'quarantine', 'spray', 'apply', 'sterilize', 'avoid', 'stop')
+    urgent = [s for s in focused_steps if any(k in s[0].lower() for k in urgent_keywords)]
+    non_urgent = [s for s in focused_steps if s not in urgent]
+    ordered = urgent + non_urgent
+
+    if ordered:
+        # Filter out unhelpful steps before displaying
+        filtered_steps = []
+        for step, src in ordered[:8]:
+            step_lower = step.lower()
+            # Skip steps that indicate no information available
+            if any(phrase in step_lower for phrase in [
+                'no specific treatment',
+                'not available',
+                'information not found',
+                'no information available',
+                'unable to find'
+            ]):
+                continue
+            filtered_steps.append((step, src))
         
-        # Prevention tips
-        prevention_tips = kb_advice.get('prevention_tips', [])
-        if prevention_tips:
-            prevention_html = '<div class="section-header">🛡️ Prevention Tips</div><div class="simple-list"><ul>'
-            for tip in prevention_tips[:4]:
-                prevention_html += f'<li>{tip}</li>'
-            prevention_html += '</ul></div>'
-            st.markdown(prevention_html, unsafe_allow_html=True)
+        if filtered_steps:
+            st.markdown('<div class="section-header">🛠️ What to do now</div>', unsafe_allow_html=True)
+            plan_html = '<div class="simple-list"><ul>'
+            for i, (step, src) in enumerate(filtered_steps, 1):
+                # For a simple user view, show clear numbered steps
+                extra = ''
+                if src == 'KB' and kb_advice.get('kb_confidence'):
+                    kb_conf = kb_advice.get('kb_confidence')
+                    kb_percent = kb_conf * 100 if kb_conf <= 1.0 else kb_conf
+                    extra = f' <span style="color:#10b981; font-size:0.85rem;">✓ Verified</span>'
+                plan_html += f'<li><strong>Step {i}:</strong> {step}{extra}</li>'
+            plan_html += '</ul></div>'
+            st.markdown(plan_html, unsafe_allow_html=True)
+    
+    # Merge prevention tips from KB and LLM
+    prevention = []
+    prevention += kb_advice.get('prevention_tips', []) if isinstance(kb_advice.get('prevention_tips', []), list) else []
+    prevention += llm_advice.get('prevention_tips', []) if isinstance(llm_advice.get('prevention_tips', []), list) else []
+    prevention += result.get('prevention', []) if isinstance(result.get('prevention', []), list) else []
+
+    # Deduplicate prevention tips
+    seen = set()
+    prevention_clean = []
+    for tip in prevention:
+        t = str(tip).strip()
+        if not t:
+            continue
+        if t.lower() in seen:
+            continue
+        seen.add(t.lower())
+        prevention_clean.append(t)
+
+    if prevention_clean:
+        prevention_html = '<div class="section-header">🛡️ Prevention Tips</div><div class="simple-list"><ul>'
+        for tip in prevention_clean[:6]:
+            prevention_html += f'<li>{tip}</li>'
+        prevention_html += '</ul></div>'
+        st.markdown(prevention_html, unsafe_allow_html=True)
     
     # Timestamp
     timestamp = result.get('timestamp', '')
@@ -479,12 +757,12 @@ def display_disease_detection(result):
     if result.get("disease_detected"):
         disease_name = result.get('disease_name', 'Unknown Disease')
         st.markdown(f'<div class="plant-name">🦠 {disease_name}</div>', unsafe_allow_html=True)
-        st.markdown('<div style="text-align: center;"><span class="status sick">⚠️ Disease Detected</span></div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center;"><span class="status sick">⚠️ Issue Detected</span></div>', unsafe_allow_html=True)
         
         # Symptoms
         symptoms = result.get("symptoms", [])
         if symptoms:
-            symptoms_html = '<div class="section-header">🔍 Identified Symptoms</div><div class="simple-list"><ul>'
+            symptoms_html = '<div class="section-header">🔎 What we saw</div><div class="simple-list"><ul>'
             for symptom in symptoms[:3]:
                 symptoms_html += f'<li>{symptom}</li>'
             symptoms_html += '</ul></div>'
@@ -493,7 +771,7 @@ def display_disease_detection(result):
         # Treatment
         treatments = result.get("treatment", [])
         if treatments:
-            treatment_html = '<div class="section-header">💊 Recommended Treatment</div><div class="simple-list"><ul>'
+            treatment_html = '<div class="section-header">🛠️ Recommended Steps</div><div class="simple-list"><ul>'
             for i, treatment in enumerate(treatments[:5], 1):
                 treatment_html += f'<li><strong>Step {i}:</strong> {treatment}</li>'
             treatment_html += '</ul></div>'
