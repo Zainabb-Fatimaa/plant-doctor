@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plant-doctor-api"
+version = "2.0.0"
+description = "Complete plant diagnosis system with classification, disease detection, and care recommendations"
+requires-python = ">=3.10,<3.11"
+
+[tool.setuptools]
+packages = ["plant_doctor"]
