@@ -6,7 +6,7 @@ inference==0.11.2
 
 typing-extensions>=4.8.0
 
-fastapi==0.116.1
+fastapi==0.110.1
 uvicorn==0.21.1
 python-multipart
 
