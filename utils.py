@@ -10,7 +10,6 @@ import sys,os
 import base64
 from pathlib import Path
 
-# Add the Leaf Disease directory to Python path
 sys.path.insert(0, str(Path(__file__).parent / "Leaf Disease"))
 
 try:
