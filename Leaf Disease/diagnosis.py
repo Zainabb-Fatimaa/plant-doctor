@@ -57,7 +57,7 @@ class PlantDiagnosisPipeline:
             self.roboflow_client = RoboflowInferenceClient(
                 api_key=roboflow_api_key,
                 workspace_name="laiba-masood-tyq7q",
-                model_id="identify-plant-zvd1y/1",
+                model_id="identify-plant-zvd1y/2",
                 min_confidence=0.7,
                 confidence_method="adaptive"
             )

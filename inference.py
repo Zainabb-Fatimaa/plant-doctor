@@ -10,8 +10,8 @@ import os
 import logging
 import base64
 import tempfile
+import requests
 from typing import Dict, Optional, Any, List
-from inference_sdk import InferenceHTTPClient
 from dotenv import load_dotenv
 import statistics
 
@@ -23,18 +23,17 @@ logger = logging.getLogger(__name__)
 
 class RoboflowInferenceClient:
     """
-    Client for Roboflow inference API to identify plant species using workflow.
+    Client for Roboflow inference API to identify plant species.
     
-    This class handles communication with Roboflow's serverless inference
-    endpoint to classify plant images and return species identification results
-    with advanced confidence filtering.
+    Uses direct REST API calls to classify.roboflow.com instead of
+    inference_sdk to avoid serverless permission issues on free plan.
     """
     
     def __init__(
         self, 
         api_key: Optional[str] = None,
         workspace_name: str = "laiba-masood-tyq7q",
-        model_id: str = "identify-plant-zvd1y/1",
+        model_id: str = "identify-plant-zvd1y/2",
         min_confidence: float = 0.7,
         confidence_method: str = "adaptive"
     ):
@@ -45,7 +44,7 @@ class RoboflowInferenceClient:
             api_key (Optional[str]): Roboflow API key. If None, will attempt to
                                    load from ROBOFLOW_API_KEY environment variable.
             workspace_name (str): Roboflow workspace name
-            model_id (str): Model ID in format "project-name/version" (e.g., "identify-plant-zvd1y/1")
+            model_id (str): Model ID in format "project-name/version" (e.g., "identify-plant-zvd1y/2")
             min_confidence (float): Minimum confidence threshold (0-1)
             confidence_method (str): Confidence filtering method:
                                    - "adaptive": Uses statistical analysis
@@ -59,7 +58,6 @@ class RoboflowInferenceClient:
                 "ROBOFLOW_API_KEY not found. Please set it in your .env file or pass it as a parameter."
             )
         
-        # Validate API key format (Roboflow keys typically start with specific prefixes)
         if not isinstance(self.api_key, str) or len(self.api_key.strip()) == 0:
             raise ValueError("ROBOFLOW_API_KEY is invalid or empty")
         
@@ -68,28 +66,20 @@ class RoboflowInferenceClient:
         self.min_confidence = min_confidence
         self.confidence_method = confidence_method
         
-        # Initialize InferenceHTTPClient exactly as per Roboflow example
-        # 2. Connect to your workflow
-        try:
-            self.client = InferenceHTTPClient(
-                api_url="https://serverless.roboflow.com",
-                api_key=self.api_key
-            )
-            logger.info(
-                f"Roboflow inference client initialized successfully with "
-                f"workspace: {workspace_name}, model: {model_id}"
-            )
-        except TypeError as e:
-            # Handle case where InferenceHTTPClient might have different parameters
-            logger.error(f"Failed to initialize InferenceHTTPClient - parameter error: {str(e)}")
-            raise ValueError(
-                f"Failed to initialize Roboflow client. "
-                f"Please check your inference-sdk version: pip install --upgrade inference-sdk. "
-                f"Error: {str(e)}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize InferenceHTTPClient: {str(e)}")
-            raise ValueError(f"Failed to initialize Roboflow client: {str(e)}")
+        # Parse project and version from model_id
+        parts = self.model_id.split("/")
+        if len(parts) != 2:
+            raise ValueError(f"Invalid model_id format: {model_id}. Expected 'project/version'")
+        self.project_id = parts[0]
+        self.version = parts[1]
+
+        # Direct REST API URL — works on free plan, no inference_sdk needed
+        self.api_url = f"https://classify.roboflow.com/{self.project_id}/{self.version}"
+
+        logger.info(
+            f"Roboflow REST client initialized: {self.api_url} "
+            f"(workspace: {workspace_name}, model: {model_id})"
+        )
     
     def _apply_advanced_confidence_filtering(
         self, 
@@ -151,7 +141,6 @@ class RoboflowInferenceClient:
                 }
         
         elif self.confidence_method == "strict":
-            # Strict method: Only accept if above threshold
             if top_confidence >= self.min_confidence:
                 return {
                     "plant_name": top_prediction.get('class', 'Unknown Plant'),
@@ -160,7 +149,6 @@ class RoboflowInferenceClient:
                 }
         
         elif self.confidence_method == "weighted":
-            # Weighted method: Average of top 3 predictions
             top_n = min(3, len(confidences))
             weights = [0.5, 0.3, 0.2][:top_n]
             weighted_sum = sum(confidences[i] * weights[i] for i in range(top_n))
@@ -183,7 +171,7 @@ class RoboflowInferenceClient:
     
     def classify_plant(self, image_path: str) -> Dict[str, Any]:
         """
-        Classify a plant image and return species identification using workflow API.
+        Classify a plant image using direct REST API call to classify.roboflow.com.
         
         Args:
             image_path (str): Path to the image file (absolute or relative path)
@@ -201,124 +189,62 @@ class RoboflowInferenceClient:
             if not os.path.isabs(image_path):
                 image_path = os.path.abspath(image_path)
             
-            # Verify file exists
             if not os.path.exists(image_path):
                 raise FileNotFoundError(f"Image file not found: {image_path}")
             
             logger.info(f"Starting plant classification for: {image_path[:50] if len(image_path) > 50 else image_path}...")
             
-            # 3. Run inference on the image using the model
+            # Read and base64 encode image — replicates: base64 < image.jpg | curl -d @-
+            with open(image_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            
+            # Direct REST call to classify.roboflow.com (free plan compatible)
             try:
-                # Use infer method for model inference (not workflow)
-                result = self.client.infer(
-                    image_path,
-                    model_id=self.model_id
+                response = requests.post(
+                    self.api_url,
+                    params={"api_key": self.api_key},
+                    data=encoded,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=30
                 )
-                logger.info(f"Inference result received: {type(result)}")
-                logger.debug(f"Inference result content: {result}")
-            except AttributeError as e:
-                error_msg = (
-                    f"infer method not found. Please upgrade inference-sdk: "
-                    f"pip install --upgrade inference-sdk. Error: {str(e)}"
-                )
-                logger.error(error_msg)
-                raise AttributeError(error_msg)
+                
+                # Handle specific HTTP errors with clear messages
+                if response.status_code == 401:
+                    raise Exception("Authentication failed — check your ROBOFLOW_API_KEY")
+                elif response.status_code == 403:
+                    raise Exception("API key lacks permission for this model")
+                elif response.status_code == 404:
+                    raise Exception(f"Model not found: {self.model_id} — verify project name and version number")
+                elif response.status_code == 500:
+                    raise Exception(f"Roboflow server error — model may be broken or not trained: {response.text}")
+                
+                response.raise_for_status()
+                result = response.json()
+                
+            except requests.exceptions.Timeout:
+                raise Exception("Request timeout — check your internet connection")
+            except requests.exceptions.ConnectionError:
+                raise Exception("Connection error — unable to reach classify.roboflow.com")
             except Exception as e:
                 error_msg = f"Failed to run inference: {str(e)}"
                 logger.error(error_msg)
-                # Provide helpful error messages for common issues
-                error_str = str(e).lower()
-                if "401" in error_str or "unauthorized" in error_str:
-                    error_msg += " (Authentication failed - check your API key)"
-                elif "404" in error_str or "not found" in error_str:
-                    error_msg += f" (Model not found - verify workspace: {self.workspace_name}, model: {self.model_id})"
-                elif "timeout" in error_str:
-                    error_msg += " (Request timeout - check your internet connection)"
                 raise Exception(error_msg)
             
-            # Extract predictions from model inference result
-            # Model results structure may vary, so we handle multiple formats
-            predictions = []
+            logger.info(f"Raw inference result keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
+            logger.info(f"Raw result sample: {str(result)[:300]}")
             
-            # Log the raw result structure for debugging (INFO level for visibility)
-            logger.info(f"Raw inference result type: {type(result)}")
-            if isinstance(result, dict):
-                logger.info(f"Raw workflow result keys: {list(result.keys())}")
-                # Log a sample of the result structure
-                logger.info(f"Raw result sample: {str(result)[:300]}")
-            else:
-                logger.info(f"Raw result (first 300 chars): {str(result)[:300]}")
-            
-            if isinstance(result, dict):
-                # Try different possible result structures
-                if 'predictions' in result:
-                    predictions = result.get('predictions', [])
-                    logger.debug("Found predictions in 'predictions' key")
-                elif 'results' in result:
-                    predictions = result.get('results', [])
-                    logger.debug("Found predictions in 'results' key")
-                elif 'output' in result:
-                    output = result.get('output', {})
-                    if isinstance(output, list):
-                        predictions = output
-                        logger.debug("Found predictions in 'output' as list")
-                    elif isinstance(output, dict) and 'predictions' in output:
-                        predictions = output.get('predictions', [])
-                        logger.debug("Found predictions in 'output.predictions'")
-                    elif isinstance(output, dict):
-                        # Try to find predictions in output dict
-                        for key in ['predictions', 'results', 'classes', 'top_predictions']:
-                            if key in output and isinstance(output[key], list):
-                                predictions = output[key]
-                                logger.debug(f"Found predictions in 'output.{key}'")
-                                break
-                elif 'image' in result:
-                    # Workflow might return results nested under image key
-                    image_data = result.get('image', {})
-                    if isinstance(image_data, dict):
-                        for key in ['predictions', 'results', 'classes']:
-                            if key in image_data and isinstance(image_data[key], list):
-                                predictions = image_data[key]
-                                logger.debug(f"Found predictions in 'image.{key}'")
-                                break
-                else:
-                    # Try to find any list of predictions in nested structure
-                    for key, value in result.items():
-                        if isinstance(value, list) and len(value) > 0:
-                            if isinstance(value[0], dict) and ('class' in value[0] or 'confidence' in value[0] or 'name' in value[0]):
-                                predictions = value
-                                logger.debug(f"Found predictions in '{key}' key")
-                                break
-                        elif isinstance(value, dict):
-                            # Check nested dicts
-                            for nested_key in ['predictions', 'results', 'classes']:
-                                if nested_key in value and isinstance(value[nested_key], list):
-                                    predictions = value[nested_key]
-                                    logger.debug(f"Found predictions in '{key}.{nested_key}'")
-                                    break
-                            if predictions:
-                                break
-            elif isinstance(result, list):
-                # If result itself is a list
-                predictions = result
-                logger.debug("Result is a list, using directly as predictions")
-            
-            # Log what we found
-            logger.info(f"Extracted {len(predictions)} predictions from model inference result")
+            # Roboflow classification REST API response format:
+            # {
+            #   "predictions": [{"class": "Rose", "class_id": 0, "confidence": 0.95}],
+            #   "top": "Rose",
+            #   "confidence": 0.95,
+            #   "time": 0.1,
+            #   "image": {"width": 640, "height": 480}
+            # }
+            predictions = result.get("predictions", [])
             
             if not predictions:
-                logger.error("No predictions returned from Roboflow model")
-                logger.error(f"Raw result type: {type(result)}")
-                if isinstance(result, dict):
-                    logger.error(f"Raw result keys: {list(result.keys())}")
-                    # Log the full structure for debugging
-                    import json
-                    try:
-                        logger.error(f"Raw result JSON: {json.dumps(result, indent=2, default=str)[:1000]}")
-                    except:
-                        logger.error(f"Raw result (string): {str(result)[:1000]}")
-                else:
-                    logger.error(f"Raw result: {str(result)[:1000]}")
+                logger.error(f"No predictions returned. Raw result: {result}")
                 return {
                     "plant_name": "Unknown Plant",
                     "confidence": 0.0,
@@ -328,52 +254,45 @@ class RoboflowInferenceClient:
                     "raw_result": result
                 }
             
-            # Normalize prediction format - handle different field names
+            # Normalize prediction format
             normalized_predictions = []
             for pred in predictions:
                 if isinstance(pred, dict):
-                    # Normalize field names (class/name, confidence/score)
                     normalized = {}
-                    normalized['class'] = pred.get('class') or pred.get('name') or pred.get('label') or pred.get('plant_name') or 'Unknown'
-                    # Handle confidence in different formats (0-1, 0-100, percentage)
+                    normalized['class'] = (
+                        pred.get('class') or pred.get('name') or 
+                        pred.get('label') or pred.get('plant_name') or 'Unknown'
+                    )
                     conf = pred.get('confidence') or pred.get('score') or pred.get('prob') or 0.0
                     if isinstance(conf, str):
                         conf = float(conf.replace('%', '')) / 100.0 if '%' in conf else float(conf)
-                    elif conf > 1.0:  # Assume 0-100 scale
+                    elif conf > 1.0:
                         conf = conf / 100.0
                     normalized['confidence'] = float(conf)
                     normalized_predictions.append(normalized)
                 elif isinstance(pred, str):
-                    # If prediction is just a string (plant name)
-                    normalized_predictions.append({
-                        'class': pred,
-                        'confidence': 1.0  # Default confidence if not provided
-                    })
+                    normalized_predictions.append({'class': pred, 'confidence': 1.0})
             
             predictions = normalized_predictions
             
-            # Sort predictions by confidence (descending)
-            if predictions and isinstance(predictions[0], dict) and 'confidence' in predictions[0]:
-                predictions = sorted(predictions, key=lambda x: float(x.get('confidence', 0)), reverse=True)
-                logger.debug(f"Top prediction: {predictions[0].get('class')} (confidence: {predictions[0].get('confidence'):.2f})")
+            # Sort by confidence descending
+            predictions = sorted(predictions, key=lambda x: float(x.get('confidence', 0)), reverse=True)
+            logger.info(f"Top prediction: {predictions[0].get('class')} (confidence: {predictions[0].get('confidence'):.2f})")
             
             # Apply advanced confidence filtering
             filtered_result = self._apply_advanced_confidence_filtering(predictions)
-            
-            # Check if confidence meets threshold
             success = filtered_result['confidence'] >= self.min_confidence
             
             if not success:
                 logger.warning(
-                    f"Classification confidence {filtered_result['confidence']:.2f} below threshold {self.min_confidence}. "
-                    f"Plant: {filtered_result['plant_name']}"
+                    f"Classification confidence {filtered_result['confidence']:.2f} below "
+                    f"threshold {self.min_confidence}. Plant: {filtered_result['plant_name']}"
                 )
             
             logger.info(
                 f"Plant classified as: {filtered_result['plant_name']} "
                 f"(confidence: {filtered_result['confidence']:.2f}, "
-                f"method: {filtered_result['method']}, "
-                f"success: {success})"
+                f"method: {filtered_result['method']}, success: {success})"
             )
             
             return {
@@ -396,7 +315,6 @@ class RoboflowInferenceClient:
             }
         except Exception as e:
             logger.error(f"Plant classification failed: {str(e)}", exc_info=True)
-            # Log more details about the error
             error_details = {
                 "error_type": type(e).__name__,
                 "error_message": str(e),
@@ -448,11 +366,9 @@ class RoboflowInferenceClient:
                 temp_path = temp_file.name
             
             try:
-                # Classify using the temporary file
                 result = self.classify_plant(temp_path)
                 return result
             finally:
-                # Clean up temporary file
                 try:
                     if os.path.exists(temp_path):
                         os.unlink(temp_path)
@@ -475,13 +391,13 @@ def main():
     try:
         client = RoboflowInferenceClient(
             workspace_name="laiba-masood-tyq7q",
-            model_id="identify-plant-zvd1y/1",
+            model_id="identify-plant-zvd1y/2",
             min_confidence=0.7,
             confidence_method="adaptive"
         )
-        print("Roboflow inference client initialized successfully!")
+        print("Roboflow REST client initialized successfully!")
+        print(f"Endpoint: {client.api_url}")
         print("Use classify_plant(image_path) or classify_plant_from_base64(base64_data) methods.")
-        print(f"Confidence method: adaptive (min threshold: 0.7)")
         
     except Exception as e:
         print(f"Error initializing Roboflow client: {str(e)}")

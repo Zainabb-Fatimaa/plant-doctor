@@ -428,7 +428,7 @@ def safe_diagnose(base64_image: str) -> Dict:
         
         roboflow_client = RoboflowInferenceClient(
             workspace_name="laiba-masood-tyq7q",
-            model_id="identify-plant-zvd1y/1",
+            model_id="identify-plant-zvd1y/2",
             min_confidence=0.7,
             confidence_method="adaptive"
         )
