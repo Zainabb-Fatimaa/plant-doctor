@@ -15,3 +15,5 @@ requests>=2.31.0
 streamlit>=1.28.0
 
 inference-sdk>=0.11.2
+
+kindwise-api-client>=0.1.0

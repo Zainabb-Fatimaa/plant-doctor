@@ -5,9 +5,13 @@ import sys
 from typing import Dict, Optional, List
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from groq import Groq
 from dotenv import load_dotenv
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 # Configure logging
@@ -420,56 +424,49 @@ def safe_diagnose(base64_image: str) -> Dict:
     classification_success = False
     disease_detection_success = False
     kb_success = False
-    
-    # Stage 1: Classification (Roboflow)
-    logger.info("Stage 1: Attempting plant classification with Roboflow")
+
+    # Stage 1: Classification (Plant.ID API)
+    logger.info("Stage 1: Attempting plant classification with Plant.ID API")
     try:
-        from inference import RoboflowInferenceClient
-        
-        roboflow_client = RoboflowInferenceClient(
-            workspace_name="laiba-masood-tyq7q",
-            model_id="identify-plant-zvd1y/2",
-            min_confidence=0.7,
-            confidence_method="adaptive"
-        )
-        classification_result = roboflow_client.classify_plant_from_base64(base64_image)
-        
+        from plant_id_utils import PlantIDClient
+
+        plant_id_client = PlantIDClient()
+        classification_result = plant_id_client.identify_plant_from_base64(base64_image)
+
         if classification_result.get("success", False):
             result["plant_name"] = classification_result.get("plant_name", "Unknown Plant")
             result["classification_info"]["plant_identified"] = True
-            result["classification_info"]["classification_confidence"] = classification_result.get("confidence", 0.0)
-            result["classification_info"]["roboflow_predictions"] = classification_result.get("predictions", [])
-            result["confidence"]["classification"] = classification_result.get("confidence", 0.0)
+            result["classification_info"]["classification_confidence"] = classification_result.get("confidence", 0.0) / 100.0  # Normalize to 0-1
+            result["classification_info"]["common_names"] = classification_result.get("common_names", [])
+            result["classification_info"]["scientific_name"] = classification_result.get("scientific_name", "")
+            result["confidence"]["classification"] = result["classification_info"]["classification_confidence"]
             classification_success = True
-            
+
             logger.info(f"Classification successful: {result['plant_name']} (confidence: {result['confidence']['classification']:.2%})")
         else:
             # Get detailed error information
             error_msg = classification_result.get("error", "Classification failed")
-            confidence = classification_result.get("confidence", 0.0)
+            confidence = classification_result.get("confidence", 0.0) / 100.0  # Normalize to 0-1
             plant_name = classification_result.get("plant_name", "Unknown Plant")
-            
-            # Build detailed error message
-            if confidence > 0:
-                error_msg = f"Classification confidence {confidence:.2%} below threshold. Detected: {plant_name}"
-            elif "No predictions" in error_msg or "predictions" in error_msg.lower():
-                error_msg = f"No predictions returned from Roboflow workflow. {error_msg}"
-            else:
-                error_msg = f"Classification failed: {error_msg}"
-            
-            logger.warning(f"Roboflow classification failed: {error_msg}")
+
+            logger.warning(f"Plant.ID classification failed: {error_msg}")
             result["classification_info"]["error"] = error_msg
             result["classification_info"]["classification_confidence"] = confidence
-            result["classification_info"]["roboflow_predictions"] = classification_result.get("predictions", [])
-            
-            # Still set plant name if we got one, even if confidence is low
-            if plant_name != "Unknown Plant":
+
+            # Edge case: if plant_api doesn't return plant name, reduce confidence accordingly
+            if plant_name == "Unknown Plant":
+                result["confidence"]["classification"] = 0.35
+                logger.info("No plant identified - confidence set to 0.35")
+            else:
+                # Still set plant name if we got one
                 result["plant_name"] = plant_name
+                result["confidence"]["classification"] = confidence
                 logger.info(f"Using low-confidence classification: {plant_name} (confidence: {confidence:.2%})")
-            
+
     except Exception as e:
-        logger.warning(f"Roboflow classification error: {str(e)}")
+        logger.warning(f"Plant.ID classification error: {str(e)}")
         result["classification_info"]["error"] = str(e)
+        result["confidence"]["classification"] = 0.35
     
     # Stage 2: Disease Detection (Groq)
     logger.info("Stage 2: Attempting disease detection with Groq")
@@ -505,144 +502,49 @@ def safe_diagnose(base64_image: str) -> Dict:
     logger.info("Stage 3: Attempting knowledge base lookup")
     try:
         from kb_utils import PlantKnowledgeBase
-        
+
         kb = PlantKnowledgeBase()
-        
+
         # Try to get plant-specific advice if we have a plant name
         if result["plant_name"] != "Unknown Plant":
             kb_info = kb.get_plant_care_info(result["plant_name"])
-            
+
             if kb_info.get("found", False):
                 result["kb_advice"]["plant_found_in_kb"] = True
+
+                # Use the exact matched plant name from KB for all lookups
+                matched_plant_name = kb_info.get("plant_name", "")
+                if matched_plant_name:
+                    result["plant_name"] = matched_plant_name
+
+                    # Extract common name for classification_info
+                    if "(" in matched_plant_name:
+                        common_name = matched_plant_name.split("(")[0].strip()
+                        if common_name:
+                            if not result["classification_info"].get("common_names"):
+                                result["classification_info"]["common_names"] = []
+                            if common_name not in result["classification_info"]["common_names"]:
+                                result["classification_info"]["common_names"].insert(0, common_name)
+
                 result["kb_advice"]["general_care"] = kb_info.get("general_care", "")
                 result["kb_advice"]["common_issues"] = kb_info.get("common_issues", [])
                 result["kb_advice"]["prevention_tips"] = kb.get_prevention_tips(result["plant_name"])
-                
+
                 # Get treatment recommendations
-                disease_name = result["disease_info"].get("disease_name")
+                disease_name = result.get("disease_info", {}).get("disease_name") if result.get("disease_info") else None
                 kb_treatments = kb.get_treatment_recommendations(result["plant_name"], disease_name)
-                result["treatments"]["kb_treatments"] = kb_treatments
-                
-                kb_success = True
-                logger.info(f"Knowledge base lookup successful for: {result['plant_name']}")
-            else:
-                logger.warning(f"Plant '{result['plant_name']}' not found in knowledge base")
-                result["kb_advice"]["error"] = f"Plant '{result['plant_name']}' not found in knowledge base"
-        else:
-            logger.warning("No plant name available for knowledge base lookup")
-            result["kb_advice"]["error"] = "No plant name available for lookup"
-            
+                if result.get("treatments") is not None:
+                    result["treatments"]["kb_treatments"] = kb_treatments
     except Exception as e:
-        logger.warning(f"Knowledge base lookup error: {str(e)}")
-        result["kb_advice"]["error"] = str(e)
-    
-    # Combine treatments from disease detection and knowledge base
-    disease_treatments = result["disease_info"].get("treatment", [])
-    kb_treatments = result["treatments"].get("kb_treatments", [])
-    result["treatments"]["disease_treatments"] = disease_treatments
-    result["treatments"]["combined_treatments"] = list(set(disease_treatments + kb_treatments))
-    
-    # Calculate overall confidence using advanced method
-    classification_conf = result["confidence"]["classification"]
-    disease_conf = result["confidence"]["disease_detection"]
-    
-    # Get KB confidence if available
-    kb_conf = 0.0
-    if result["kb_advice"].get("plant_found_in_kb"):
-        # Calculate KB confidence based on match quality
-        from kb_utils import PlantKnowledgeBase
-        kb = PlantKnowledgeBase()
-        kb_info = kb.get_plant_care_info(result["plant_name"])
-        kb_conf = kb_info.get("confidence", 0.0)
-        result["kb_advice"]["kb_confidence"] = kb_conf
-    
-    # Advanced confidence calculation
-    import statistics
-    
-    confidences = []
-    weights = []
-    
-    if classification_success:
-        confidences.append(classification_conf)
-        weights.append(0.4)
-    
-    if disease_detection_success:
-        # Normalize disease confidence (0-100 to 0-1)
-        disease_conf_normalized = disease_conf / 100.0 if disease_conf > 1.0 else disease_conf
-        confidences.append(disease_conf_normalized)
-        weights.append(0.4)
-    
-    if kb_conf > 0:
-        confidences.append(kb_conf)
-        weights.append(0.2)
-    
-    if confidences:
-        # Normalize weights
-        total_weight = sum(weights)
-        if total_weight > 0:
-            weights = [w / total_weight for w in weights]
-        
-        # Adaptive weighted: Boost high confidence, reduce low confidence
-        adjusted_weights = []
-        for conf, weight in zip(confidences, weights):
-            if conf > 0.8:
-                adjusted_weights.append(weight * 1.2)
-            elif conf < 0.5:
-                adjusted_weights.append(weight * 0.7)
-            else:
-                adjusted_weights.append(weight)
-        
-        # Normalize adjusted weights
-        total_adjusted = sum(adjusted_weights)
-        if total_adjusted > 0:
-            adjusted_weights = [w / total_adjusted for w in adjusted_weights]
-        
-        overall = sum(conf * weight for conf, weight in zip(confidences, adjusted_weights))
-        result["confidence"]["overall"] = max(0.0, min(1.0, overall))
-        result["confidence"]["calculation_method"] = "adaptive_weighted"
-    else:
-        result["confidence"]["overall"] = 0.0
-    
-    # Determine pipeline success
-    result["pipeline_success"] = classification_success or disease_detection_success or kb_success
-    
-    # Final Fallback: If everything failed, provide general advice
-    if not result["pipeline_success"]:
-        logger.warning("All diagnosis stages failed, providing general fallback advice")
-        result["kb_advice"]["general_tips"] = [
-            "Water moderately - check soil moisture before watering",
-            "Ensure good sunlight exposure for 6-8 hours daily",
-            "Check soil drainage to prevent root rot",
-            "Inspect regularly for pests and diseases",
-            "Maintain proper humidity levels",
-            "Use well-draining potting mix"
-        ]
-        result["treatments"]["note"] = "No specific treatments available - general care recommended"
-        result["chatbot"] = {
-            "enabled": True,
-            "endpoint": "/chatbot",
-            "note": "Since automated diagnosis could not identify your plant, you can use our Plant Doctor Chatbot for personalized help."
-        }
-    
-    logger.info(f"Safe diagnosis completed - Pipeline success: {result['pipeline_success']}")
+        logger.warning(f"Knowledge base lookup failed: {str(e)}")
+        import traceback
+        logger.debug(f"KB lookup traceback: {traceback.format_exc()}")
+        # Continue without KB data if lookup fails
+        pass
+
+    # Calculate overall confidence as weighted average
+    classification_conf = result["confidence"].get("classification", 0.0)
+    disease_conf = result["confidence"].get("disease_detection", 0.0) / 100.0  # Normalize from 0-100 to 0-1
+    result["confidence"]["overall"] = (classification_conf * 0.3 + disease_conf * 0.7)
+
     return result
-
-
-def main():
-    """Main execution function for testing"""
-    try:
-        # Example usage
-        detector = LeafDiseaseDetector()
-        print("Leaf Disease Detector initialized successfully!")
-        print("Available methods:")
-        print("- analyze_leaf_image_base64() for disease detection only")
-        print("- diagnose_plant() for complete plant diagnosis pipeline")
-        print("- safe_diagnose() for robust diagnosis with fallbacks")
-
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

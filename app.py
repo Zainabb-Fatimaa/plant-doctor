@@ -23,56 +23,56 @@ app = FastAPI(title="Plant Doctor API", version="2.0.0", description="Complete p
 async def plant_diagnosis(file: UploadFile = File(...)):
     """
     Endpoint to detect diseases in leaf images using direct image file upload.
-    Now includes plant classification from Roboflow along with disease detection.
+    Now uses plant.id API for plant identification along with disease detection.
     Accepts multipart/form-data with an image file.
     """
     try:
-        logger.info("Received image file for disease detection with plant classification")
-        
+        logger.info("Received image file for disease detection with plant identification")
+
         # Validate file type
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
-        
+
         # Read uploaded file into memory
         contents = await file.read()
-        
-        # Convert to base64 for Roboflow classification
+
+        # Convert to base64 for plant.id API
         import base64
         base64_image = base64.b64encode(contents).decode('utf-8')
-        
-        # First, classify the plant using Roboflow
+
+        # First, identify the plant using plant.id API
         plant_name = "Unknown Plant"
-        
+        plant_confidence = 0.0
+
         try:
-            from inference import RoboflowInferenceClient
-            
-            roboflow_client = RoboflowInferenceClient(
-                workspace_name="laiba-masood-tyq7q",
-                model_id="identify-plant-zvd1y/1",
-                min_confidence=0.7,
-                confidence_method="adaptive"
-            )
-            classification_result = roboflow_client.classify_plant_from_base64(base64_image)
-            
-            if classification_result.get("success", False):
-                plant_name = classification_result.get("plant_name", "Unknown Plant")
+            from plant_id_utils import PlantIDClient
+
+            plant_id_client = PlantIDClient()
+            identification_result = plant_id_client.identify_plant_from_base64(base64_image)
+
+            if identification_result.get("success", False):
+                plant_name = identification_result.get("plant_name", "Unknown Plant")
+                plant_confidence = identification_result.get("confidence", 0.0) / 100.0
             else:
-                classification_error = classification_result.get("error", "Classification failed")
-                logger.warning(f"Roboflow classification failed: {classification_error}")
+                # Edge case: if plant_api doesn't return plant name, reduce confidence
+                logger.warning(f"Plant identification failed: {identification_result.get('error')}")
+                plant_confidence = 0.0
+
         except Exception as e:
-            classification_error = str(e)
-            logger.warning(f"Roboflow classification error: {classification_error}")
-        
+            identification_error = str(e)
+            logger.warning(f"Plant identification error: {identification_error}")
+
         # Process file for disease detection
         result = convert_image_to_base64_and_test(contents)
-        
+
         if result is None:
             raise HTTPException(status_code=500, detail="Failed to process image file")
-        
-        # Add plant classification info to the result
+
+        # Add plant identification info to the result
         result["plant_name"] = plant_name
-        
-        logger.info("Disease detection with plant classification completed successfully")
+        result["plant_confidence"] = plant_confidence
+
+        logger.info("Disease detection with plant identification completed successfully")
         return JSONResponse(content=result)
     except HTTPException:
         raise
@@ -84,40 +84,40 @@ async def plant_diagnosis(file: UploadFile = File(...)):
 @app.post('/diagnose')
 async def diagnose_plant(file: UploadFile = File(...)):
     """
-    Complete plant diagnosis endpoint that combines plant classification, 
+    Complete plant diagnosis endpoint that combines plant identification,
     disease detection, and knowledge base recommendations.
-    
+
     This endpoint provides comprehensive plant analysis including:
-    - Plant species identification (Roboflow)
+    - Plant species identification (plant.id API)
     - Disease detection (Groq AI)
-    - Care recommendations (Knowledge Base)
+    - Care recommendations (Knowledge Base with Llama fallback)
     """
     try:
         logger.info("Received image file for complete plant diagnosis")
-        
+
         # Validate file type
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
-        
+
         # Read uploaded file into memory
         contents = await file.read()
-        
+
         # Convert to base64 for processing
         import base64
         base64_image = base64.b64encode(contents).decode('utf-8')
-        
+
         # Import and use the safe diagnosis pipeline with fallbacks
         from main import safe_diagnose
-        
+
         # Run safe diagnosis with tiered fallbacks
         result = safe_diagnose(base64_image)
-        
+
         if not result.get("pipeline_success", False):
             logger.warning("Plant diagnosis pipeline completed with issues")
-        
+
         logger.info("Complete plant diagnosis completed successfully")
         return JSONResponse(content=result)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -137,9 +137,10 @@ async def root():
             "disease_detection_file": "/disease-detection-file (POST, file upload) - Disease detection only"
         },
         "features": [
-            "Plant species identification (Roboflow)",
+            "Plant species identification (plant.id API)",
             "Disease detection and analysis (Groq AI)",
             "Plant-specific care recommendations (Knowledge Base)",
+            "Fallback care tips from AI (when plant not in KB)",
             "Treatment and prevention advice"
         ]
     }
