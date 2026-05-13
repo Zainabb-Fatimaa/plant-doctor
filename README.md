@@ -180,7 +180,7 @@ Upload an image file for comprehensive plant analysis including species identifi
   "confidence": {
     "classification": 0.92,
     "disease_detection": 87.3,
-    "overall": 89.65
+    "overall": 0.889
   },
   "pipeline_success": true,
   "timestamp": "2024-01-15T10:30:00Z"
@@ -325,6 +325,57 @@ This project is optimized for Vercel with the included vercel.json configuration
 #### Model Selection:
 **Current model:** meta-llama/llama-4-scout-17b-16e-instruct
 **Alternative models:** llama3-11b-vision-alpha, llama-3.2-90b-vision-preview (high-accuracy model)
+
+### Confidence Scoring Calculation
+
+#### Overall Confidence Formula:
+The overall confidence score is calculated as a **weighted average** of plant identification and disease detection:
+
+```
+overall_confidence = (classification_confidence × 0.3) + (disease_detection_confidence × 0.7)
+```
+
+**Weighting Rationale:**
+- **30% Plant Classification**: Identifies the plant species (lower weight as incorrect ID can be handled with generic advice)
+- **70% Disease Detection**: Determines plant health status (higher weight as treatment depends critically on accurate diagnosis)
+
+**Example Calculation:**
+- Classification confidence: 0.23 (23%)
+- Disease detection confidence: 90 (normalized to 0.9)
+- Overall confidence: (0.23 × 0.3) + (0.9 × 0.7) = 0.069 + 0.63 = **0.699 (69.9%)**
+
+**Interpretation Guide:**
+- **90-100%**: Highly confident diagnosis - proceed with recommended treatments
+- **70-89%**: Confident diagnosis - recommended treatments with monitoring
+- **50-69%**: Moderate confidence - suggest professional review for severe cases
+- **Below 50%**: Low confidence - recommend manual plant/disease identification
+
+### Knowledge Base Plant Name Resolution
+
+#### Plant Name Matching Strategy:
+When plant species is identified by Roboflow, the system matches it against the knowledge base (KB) for plant-specific care information:
+
+**Process Flow:**
+1. **Initial Identification**: Roboflow identifies plant as scientific name (e.g., "Spathiphyllum wallisii")
+2. **KB Lookup**: Search knowledge base with identified plant name
+3. **Exact Match Found**: Use the KB's formatted plant name (e.g., "Peace Lily (Spathiphyllum wallisii)") for all subsequent lookups
+4. **No Match**: Fall back to original identified name with generic disease treatment
+
+**Benefits:**
+- **Consistency**: All KB queries use the exact matched plant name from knowledge base
+- **Accuracy**: Eliminates string reconstruction errors when extracting common names
+- **Common Name Enrichment**: Automatically extracts and adds common names to classification info
+- **Better Plant Care**: Uses matched KB entry for general care, prevention tips, and disease-specific treatments
+
+**Example:**
+```
+API Response (matched in KB):
+  "plant_name": "Peace Lily (Spathiphyllum wallisii)"
+  "kb_advice": {
+    "plant_found_in_kb": true,
+    "general_care": "Prefers bright, indirect light..."
+  }
+```
 
 ### Image Processing Optimization
 
